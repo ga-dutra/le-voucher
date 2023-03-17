@@ -5,6 +5,7 @@ import { jest } from "@jest/globals";
 jest.mock("uuid", () => ({ v4: () => "Voucher created by mock" }));
 
 describe("voucherService test suite", () => {
+  const code = "RANDOM_STRING";
   it("should create a discount", () => {
     const order = voucherService.createVoucher("abc", 50);
     expect(order).toEqual({
@@ -13,8 +14,6 @@ describe("voucherService test suite", () => {
     });
   });
   it("should create a valid voucher", async () => {
-    const code = "RANDOM_STRING";
-
     jest
       .spyOn(voucherRepository, "getVoucherByCode")
       .mockImplementationOnce((): any => {});
@@ -26,6 +25,30 @@ describe("voucherService test suite", () => {
     await voucherService.createVoucher(code, 10);
 
     expect(voucherRepository.createVoucher).toBeCalled();
+  });
+
+  it("should result in conflict error if voucher already exists", () => {
+    const voucher = {
+      code,
+      discount: 10,
+    };
+    jest
+      .spyOn(voucherRepository, "getVoucherByCode")
+      .mockImplementationOnce((): any => {
+        return {
+          code: voucher.code,
+          discount: voucher.discount,
+        };
+      });
+    const promise = voucherService.createVoucher(
+      voucher.code,
+      voucher.discount
+    );
+
+    expect(promise).rejects.toEqual({
+      message: "Voucher already exist.",
+      type: "conflict",
+    });
   });
 });
 
