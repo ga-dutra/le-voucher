@@ -74,6 +74,56 @@ describe("voucherService test suite", () => {
       type: "conflict",
     });
   });
+
+  it("should not apply discount if amount is lower then 100", async () => {
+    const voucher = {
+      code,
+      discount: 10,
+    };
+    jest
+      .spyOn(voucherRepository, "getVoucherByCode")
+      .mockImplementationOnce((): any => {
+        return {
+          id: 1,
+          code: voucher.code,
+          discount: voucher.discount,
+          used: false,
+        };
+      });
+    const amount = 99;
+
+    const order = await voucherService.applyVoucher(voucher.code, amount);
+
+    expect(order.amount).toBe(amount);
+    expect(order.discount).toBe(voucher.discount);
+    expect(order.finalAmount).toBe(amount);
+    expect(order.applied).toBe(false);
+  });
+
+  it("should not apply discount to an used voucher", async () => {
+    const voucher = {
+      code,
+      discount: 10,
+    };
+    jest
+      .spyOn(voucherRepository, "getVoucherByCode")
+      .mockImplementationOnce((): any => {
+        return {
+          id: 1,
+          code: voucher.code,
+          discount: voucher.discount,
+          used: true,
+        };
+      });
+    const amount = 1000;
+
+    const order = await voucherService.applyVoucher(voucher.code, amount);
+
+    expect(order.amount).toBe(amount);
+    expect(order.discount).toBe(voucher.discount);
+    expect(order.finalAmount).toBe(amount);
+    expect(order.applied).toBe(false);
+  });
 });
 
 function createRandomValue(min: number, max: number) {
