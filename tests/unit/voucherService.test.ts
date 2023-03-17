@@ -51,7 +51,7 @@ describe("voucherService test suite", () => {
     expect(voucherRepository.createVoucher).toBeCalled();
   });
 
-  it("should result in conflict error if voucher already exists", () => {
+  it("should respond with conflict error if voucher already exists", () => {
     const voucher = {
       code,
       discount: 10,
@@ -115,7 +115,7 @@ describe("voucherService test suite", () => {
           used: true,
         };
       });
-    const amount = 1000;
+    const amount = 500;
 
     const order = await voucherService.applyVoucher(voucher.code, amount);
 
@@ -123,6 +123,26 @@ describe("voucherService test suite", () => {
     expect(order.discount).toBe(voucher.discount);
     expect(order.finalAmount).toBe(amount);
     expect(order.applied).toBe(false);
+  });
+
+  it("should respond with conflict error if voucher is not valid", async () => {
+    const voucher = {
+      code,
+      discount: 10,
+    };
+    jest
+      .spyOn(voucherRepository, "getVoucherByCode")
+      .mockImplementationOnce((): any => {
+        return {
+          undefined,
+        };
+      });
+    const amount = 500;
+    const promise = await voucherService.applyVoucher(voucher.code, amount);
+    expect(promise).rejects.toEqual({
+      message: "Voucher does not exist.",
+      type: "conflict",
+    });
   });
 });
 
