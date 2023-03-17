@@ -6,13 +6,37 @@ jest.mock("uuid", () => ({ v4: () => "Voucher created by mock" }));
 
 describe("voucherService test suite", () => {
   const code = "RANDOM_STRING";
-  it("should create a discount", () => {
-    const order = voucherService.createVoucher("abc", 50);
-    expect(order).toEqual({
-      discount: 50,
-      serial: expect.any(String),
-    });
+
+  it("should create a voucher", async () => {
+    const voucher = {
+      code,
+      discount: 10,
+    };
+    jest
+      .spyOn(voucherRepository, "getVoucherByCode")
+      .mockImplementationOnce((): any => {
+        return {
+          id: 1,
+          code: voucher.code,
+          discount: voucher.discount,
+          used: false,
+        };
+      });
+    jest
+      .spyOn(voucherRepository, "useVoucher")
+      .mockImplementationOnce((): any => {});
+
+    const amount = 500;
+    const finalExpectedAmount = amount - amount * (voucher.discount / 100);
+
+    const order = await voucherService.applyVoucher(voucher.code, amount);
+
+    expect(order.amount).toBe(amount);
+    expect(order.discount).toBe(voucher.discount);
+    expect(order.finalAmount).toBe(finalExpectedAmount);
+    expect(order.applied).toBe(true);
   });
+
   it("should create a valid voucher", async () => {
     jest
       .spyOn(voucherRepository, "getVoucherByCode")
